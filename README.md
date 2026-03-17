@@ -79,6 +79,26 @@ Type      : CDP
 'COMPUTER1', 'COMPUTER2' | Invoke-DiscoveryProtocolCapture | Export-Pcap -Path packets.pcap
 ```
 
+
+### Parallel connectivity pre-check (gateway + 8.8.8.8)
+
+```PowerShell
+Test-DiscoveryProtocolConnectivity
+```
+
+#### Output
+```
+Target    : 192.0.2.1
+Reachable : True
+DurationMs: 15
+TimeStamp : 10/1/2024 12:33:20 PM
+
+Target    : 8.8.8.8
+Reachable : True
+DurationMs: 22
+TimeStamp : 10/1/2024 12:33:20 PM
+```
+
 ### Speed up capturing in PowerShell 7
 
 By leveraging the new `-Parallel` parameter on `ForEach-Object` we can capture simultaneously on multiple computers.
