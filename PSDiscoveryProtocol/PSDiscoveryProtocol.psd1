@@ -12,7 +12,7 @@
 RootModule = 'PSDiscoveryProtocol'
 
 # Version number of this module.
-ModuleVersion = '1.4.3'
+ModuleVersion = '1.4.4'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop', 'Core')
@@ -74,7 +74,8 @@ FunctionsToExport = @(
     'ConvertFrom-LLDPPacket',
     'Export-Pcap',
     'Get-DiscoveryProtocolData',
-    'Invoke-DiscoveryProtocolCapture'
+    'Invoke-DiscoveryProtocolCapture',
+    'Test-DiscoveryProtocolConnectivity'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

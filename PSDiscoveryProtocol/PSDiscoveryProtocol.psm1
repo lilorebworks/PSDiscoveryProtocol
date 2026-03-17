@@ -43,6 +43,90 @@ class DiscoveryProtocolPacket {
 }
 #endregion
 
+#region function Test-DiscoveryProtocolConnectivity
+function Test-DiscoveryProtocolConnectivity {
+
+    <#
+
+.SYNOPSIS
+
+    Test gateway and internet reachability in parallel.
+
+.DESCRIPTION
+
+    Finds the default IPv4 gateway and runs connectivity tests in parallel
+    to both the gateway and Google DNS (8.8.8.8). This can be used as a quick
+    pre-check before starting discovery protocol captures.
+
+.PARAMETER Count
+
+    Number of echo requests to send to each target.
+
+.PARAMETER TimeoutSeconds
+
+    Per-ping timeout in seconds.
+
+.OUTPUTS
+
+    PSCustomObject with target, reachable status, and timing.
+
+.EXAMPLE
+
+    PS C:\> Test-DiscoveryProtocolConnectivity
+
+    Runs parallel tests to the default gateway and 8.8.8.8.
+
+#>
+
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [ValidateRange(1, 10)]
+        [int]$Count = 2,
+
+        [Parameter()]
+        [ValidateRange(1, 10)]
+        [int]$TimeoutSeconds = 2
+    )
+
+    $DefaultGateway = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction Stop |
+    Where-Object { $_.NextHop -and $_.NextHop -ne '0.0.0.0' } |
+    Sort-Object -Property RouteMetric, InterfaceMetric |
+    Select-Object -First 1 -ExpandProperty NextHop
+
+    if (-not $DefaultGateway) {
+        throw 'Unable to determine default IPv4 gateway.'
+    }
+
+    $Targets = @($DefaultGateway, '8.8.8.8') | Select-Object -Unique
+
+    $Jobs = foreach ($Target in $Targets) {
+        Start-Job -ScriptBlock {
+            param($ComputerName, $ProbeCount, $ProbeTimeout)
+
+            $Start = Get-Date
+            $Reachable = Test-Connection -ComputerName $ComputerName -Count $ProbeCount -Quiet -TimeoutSeconds $ProbeTimeout -ErrorAction SilentlyContinue
+            $End = Get-Date
+
+            [PSCustomObject]@{
+                Target       = $ComputerName
+                Reachable    = [bool]$Reachable
+                DurationMs   = [int](($End - $Start).TotalMilliseconds)
+                TimeStamp    = $End
+            }
+        } -ArgumentList $Target, $Count, $TimeoutSeconds
+    }
+
+    try {
+        $Results = $Jobs | Wait-Job | Receive-Job
+        $Results | Sort-Object -Property Target
+    }
+    finally {
+        $Jobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+}
+#endregion
+
 #region function Invoke-DiscoveryProtocolCapture
 function Invoke-DiscoveryProtocolCapture {
 
